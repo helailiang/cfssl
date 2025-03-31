@@ -16,6 +16,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	bx509 "github.com/deatil/go-cryptobin/x509"
 	"os"
 	"strings"
 	"time"
@@ -25,6 +26,8 @@ import (
 	"github.com/cloudflare/cfssl/helpers/derhelpers"
 	"github.com/cloudflare/cfssl/log"
 
+	"github.com/deatil/go-cryptobin/elliptic/secp256k1"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	ct "github.com/google/certificate-transparency-go"
 	cttls "github.com/google/certificate-transparency-go/tls"
 	ctx509 "github.com/google/certificate-transparency-go/x509"
@@ -323,7 +326,8 @@ func ParseOneCertificateFromPEM(certsPEM []byte) ([]*x509.Certificate, []byte, e
 		return nil, rest, nil
 	}
 
-	cert, err := x509.ParseCertificate(block.Bytes)
+	//cert, err := x509.ParseCertificate(block.Bytes)
+	cert, err := bx509.ParseCertificate(block.Bytes) //k1
 	if err != nil {
 		pkcs7data, err := pkcs7.ParsePKCS7(block.Bytes)
 		if err != nil {
@@ -338,7 +342,7 @@ func ParseOneCertificateFromPEM(certsPEM []byte) ([]*x509.Certificate, []byte, e
 		}
 		return certs, rest, nil
 	}
-	var certs = []*x509.Certificate{cert}
+	var certs = []*x509.Certificate{cert.ToX509Certificate()} //k1
 	return certs, rest, nil
 }
 
@@ -496,6 +500,8 @@ func SignerAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
 		case elliptic.P384():
 			return x509.ECDSAWithSHA384
 		case elliptic.P256():
+			return x509.ECDSAWithSHA256
+		case secp256k1.S256(), ethcrypto.S256(): //添加k1
 			return x509.ECDSAWithSHA256
 		default:
 			return x509.ECDSAWithSHA1

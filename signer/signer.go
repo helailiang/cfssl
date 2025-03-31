@@ -12,6 +12,9 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"errors"
+	"github.com/deatil/go-cryptobin/elliptic/secp256k1"
+	bx509 "github.com/deatil/go-cryptobin/x509"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"math/big"
 	"net/http"
 	"strings"
@@ -166,6 +169,8 @@ func DefaultSigAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
 			return x509.ECDSAWithSHA384
 		case elliptic.P521():
 			return x509.ECDSAWithSHA512
+		case secp256k1.S256(), ethcrypto.S256():
+			return x509.ECDSAWithSHA256
 		default:
 			return x509.ECDSAWithSHA1
 		}
@@ -183,7 +188,7 @@ func isCommonAttr(t []int) bool {
 // ParseCertificateRequest takes an incoming certificate request and
 // builds a certificate template from it.
 func ParseCertificateRequest(s Signer, p *config.SigningProfile, csrBytes []byte) (template *x509.Certificate, err error) {
-	csrv, err := x509.ParseCertificateRequest(csrBytes)
+	csrv, err := bx509.ParseCertificateRequest(csrBytes)
 	if err != nil {
 		err = cferr.Wrap(cferr.CSRError, cferr.ParseFailed, err)
 		return
@@ -216,7 +221,7 @@ func ParseCertificateRequest(s Signer, p *config.SigningProfile, csrBytes []byte
 
 	template = &x509.Certificate{
 		Subject:            subject,
-		PublicKeyAlgorithm: csrv.PublicKeyAlgorithm,
+		PublicKeyAlgorithm: x509.PublicKeyAlgorithm(csrv.PublicKeyAlgorithm),
 		PublicKey:          csrv.PublicKey,
 		SignatureAlgorithm: s.SigAlgo(),
 		DNSNames:           csrv.DNSNames,
@@ -267,7 +272,7 @@ type subjectPublicKeyInfo struct {
 // SubjectPublicKeyInfo component of the certificate.
 func ComputeSKI(template *x509.Certificate) ([]byte, error) {
 	pub := template.PublicKey
-	encodedPub, err := x509.MarshalPKIXPublicKey(pub)
+	encodedPub, err := bx509.MarshalPKIXPublicKey(pub)
 	if err != nil {
 		return nil, err
 	}

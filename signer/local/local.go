@@ -16,6 +16,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/zmap/zlint/v3/lint"
 	"io"
 	"math/big"
 	"net"
@@ -36,9 +37,9 @@ import (
 	"github.com/google/certificate-transparency-go/client"
 	"github.com/google/certificate-transparency-go/jsonclient"
 
+	bx509 "github.com/deatil/go-cryptobin/x509"
 	zx509 "github.com/zmap/zcrypto/x509"
 	"github.com/zmap/zlint/v3"
-	"github.com/zmap/zlint/v3/lint"
 )
 
 // Signer contains a signer that uses the standard library to
@@ -207,15 +208,18 @@ func (s *Signer) sign(template *x509.Certificate, lintErrLevel lint.LintStatus, 
 		return nil, err
 	}
 
-	derBytes, err := x509.CreateCertificate(rand.Reader, template, s.ca, template.PublicKey, s.priv)
+	//derBytes, err := x509.CreateCertificate(rand.Reader, template, s.ca, template.PublicKey, s.priv)
+	derBytes, err := bx509.CreateCertificate(rand.Reader, bx509.FromX509Certificate(template), bx509.FromX509Certificate(s.ca), template.PublicKey, s.priv)
 	if err != nil {
 		return nil, cferr.Wrap(cferr.CertificateError, cferr.Unknown, err)
 	}
 	if initRoot {
-		s.ca, err = x509.ParseCertificate(derBytes)
+		//s.ca, err = x509.ParseCertificate(derBytes) //k1
+		bCertificate, err := bx509.ParseCertificate(derBytes) //k1
 		if err != nil {
 			return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, err)
 		}
+		s.ca = bCertificate.ToX509Certificate()
 	}
 
 	cert = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes})

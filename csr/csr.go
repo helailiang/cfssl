@@ -25,6 +25,7 @@ import (
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/helpers/derhelpers"
 	"github.com/cloudflare/cfssl/log"
+	bx509 "github.com/deatil/go-cryptobin/x509"
 )
 
 const (
@@ -460,7 +461,8 @@ func GenerateDER(priv crypto.Signer, req *CertificateRequest) (csr []byte, err e
 		}
 	}
 
-	csr, err = x509.CreateCertificateRequest(rand.Reader, &tpl, priv)
+	//csr, err = x509.CreateCertificateRequest(rand.Reader, &tpl, priv)
+	csr, err = bx509.CreateCertificateRequest(rand.Reader, bx509.FromX509CertificateRequest(&tpl), priv)
 	if err != nil {
 		log.Errorf("failed to generate a CSR: %v", err)
 		err = cferr.Wrap(cferr.CSRError, cferr.BadRequest, err)
